@@ -154,6 +154,10 @@ const llmProviderConfigSchemaList = [
     model: createProviderModelSchema<"moonshotai">("moonshotai"),
   }),
   baseAPIProviderConfigSchema.extend({
+    provider: z.literal("kimi-coding"),
+    model: createProviderModelSchema<"kimi-coding">("kimi-coding"),
+  }),
+  baseAPIProviderConfigSchema.extend({
     provider: z.literal("huggingface"),
     model: createProviderModelSchema<"huggingface">("huggingface"),
   }),

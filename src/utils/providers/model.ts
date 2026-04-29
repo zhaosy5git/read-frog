@@ -57,9 +57,14 @@ const CREATE_AI_MAPPER = {
   "minimax": createMinimax,
   "alibaba": createAlibaba,
   "moonshotai": createMoonshotAI,
+  "kimi-coding": createAnthropic,
   "huggingface": createHuggingFace,
 } as const
 
+const CUSTOM_HEADER_MAP: Partial<Record<keyof typeof CREATE_AI_MAPPER, Record<string, string>>> = {
+  "anthropic": { "anthropic-dangerous-direct-browser-access": "true" },
+  "kimi-coding": { "User-Agent": "claude-code/0.1.0" },
+}
 async function getLanguageModelById(providerId: string) {
   const config = await storage.getItem<Config>(`local:${CONFIG_STORAGE_KEY}`)
   if (!config) {
@@ -77,20 +82,35 @@ async function getLanguageModelById(providerId: string) {
     ? compactObject(providerConfig.providerSpecificSettings ?? {})
     : {}
 
+  const customHeaders = CUSTOM_HEADER_MAP[providerConfig.provider]
+  const mergedHeaders = customHeaders ? { ...customHeaders, ...headers } : headers
+
+  const baseOptions: Record<string, unknown> = {
+    ...(providerConfig.baseURL && { baseURL: providerConfig.baseURL }),
+    ...(mergedHeaders && { headers: mergedHeaders }),
+  }
+
+  if (providerConfig.apiKey) {
+    // Kimi Coding endpoint expects Authorization: Bearer instead of x-api-key
+    if (providerConfig.provider === "kimi-coding") {
+      baseOptions.authToken = providerConfig.apiKey
+    }
+    else {
+      baseOptions.apiKey = providerConfig.apiKey
+    }
+  }
+
   const provider = isCustomLLMProvider(providerConfig.provider)
     ? CREATE_AI_MAPPER[providerConfig.provider]({
         ...providerSpecificSettings,
+        ...baseOptions,
         name: providerConfig.provider,
         baseURL: providerConfig.baseURL ?? "",
         supportsStructuredOutputs: true,
-        ...(providerConfig.apiKey && { apiKey: providerConfig.apiKey }),
-        ...(headers && { headers }),
       })
     : CREATE_AI_MAPPER[providerConfig.provider]({
         ...providerSpecificSettings,
-        ...(providerConfig.baseURL && { baseURL: providerConfig.baseURL }),
-        ...(providerConfig.apiKey && { apiKey: providerConfig.apiKey }),
-        ...(headers && { headers }),
+        ...baseOptions,
       })
 
   const modelId = resolveModelId(providerConfig.model)

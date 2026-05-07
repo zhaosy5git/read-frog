@@ -3,10 +3,13 @@ import { APP_NAME } from "@read-frog/definitions"
 import { env } from "@/env"
 
 export const DEFAULT_PROVIDER_HEADERS: Partial<Record<LLMProviderTypes, Record<string, string>>> = {
-  anthropic: {
+  "anthropic": {
     "anthropic-dangerous-direct-browser-access": "true",
   },
-  openrouter: {
+  "kimi-coding": {
+    "User-Agent": "claude-code/0.1.0",
+  },
+  "openrouter": {
     "HTTP-Referer": env.WXT_WEBSITE_URL,
     "X-OpenRouter-Title": APP_NAME,
   },
